@@ -54,11 +54,11 @@ class Splitter(Iterator[str]):
             self._data = s
 
 
-CMD_REGEX = re.compile(r'!(?P<name>\w+)(?:\s+(?P<args>.*?))?\s*(?P<end>\)|\+|-|$)')
+CMD_REGEX = re.compile(r'!(?P<name>\w+)(?:\s+(?P<args>.*?))?\s*(?P<end>\)|\+|-|$)', flags=re.MULTILINE)
 
 
 def convert_code(code: str) -> str:
-    return CMD_REGEX.sub(r'_run_smoked(\g<name>, "\g<args>")\g<end>', code)
+    return CMD_REGEX.sub(r'_run_smoked(locals(), \g<name>, "\g<args>")\g<end>', code)
 
 
 _ast_parse = ast.parse
@@ -71,7 +71,7 @@ def _patched_ast_parse(code: str, *args):
 ast.parse = _patched_ast_parse
 
 
-def _run_smoked(function, args: str):
+def _run_smoked(locs, function, args: str):
     sig = inspect.signature(function)
     params = list(sig.parameters.values())
     data = Splitter(args.strip(), True)
@@ -85,7 +85,7 @@ def _run_smoked(function, args: str):
             if not arg:
                 raise StopIteration
             try:
-                arg = eval(arg)
+                arg = eval(arg, {}, locs)
             except NameError:
                 pass
             res.append(arg)
