@@ -2,6 +2,7 @@ import ast
 import inspect
 import re
 import shlex
+import sys
 from typing import Iterator
 
 
@@ -73,19 +74,21 @@ ast.parse = _patched_ast_parse
 def _run_smoked(function, args: str):
     sig = inspect.signature(function)
     params = list(sig.parameters.values())
-    data = Splitter(args, True)
+    data = Splitter(args.strip(), True)
     res = []
     for i, param in enumerate(params):
         try:
             if i == len(params) - 1:
-                param = data.remaining_data
+                arg = data.remaining_data
             else:
-                param = next(data)
+                arg = next(data)
+            if not arg:
+                raise StopIteration
             try:
-                param = eval(param)
+                arg = eval(arg)
             except NameError:
                 pass
-            res.append(param)
+            res.append(arg)
         except StopIteration:
             if param.default == param.empty:
                 raise ValueError(f'Missing argument {param.name}')
