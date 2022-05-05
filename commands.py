@@ -1,8 +1,13 @@
-import ast
+"""
+    name: commands
+    once: false
+    origin: tgpy://module/commands
+    priority: 1651776900
+    save_locals: true
+"""
 import inspect
 import re
 import shlex
-import sys
 from typing import Iterator
 
 
@@ -54,23 +59,6 @@ class Splitter(Iterator[str]):
             self._data = s
 
 
-CMD_REGEX = re.compile(r'!(?P<name>\w+)(?:\s+(?P<args>.*?))?\s*(?P<end>\)|\+|-|$)', flags=re.MULTILINE)
-
-
-def convert_code(code: str) -> str:
-    return CMD_REGEX.sub(r'_run_smoked(locals(), \g<name>, "\g<args>")\g<end>', code)
-
-
-_ast_parse = ast.parse
-
-
-def _patched_ast_parse(code: str, *args):
-    return _ast_parse(convert_code(code), *args)
-
-
-ast.parse = _patched_ast_parse
-
-
 def _run_smoked(locs, function, args: str):
     sig = inspect.signature(function)
     params = list(sig.parameters.values())
@@ -97,6 +85,12 @@ def _run_smoked(locs, function, args: str):
     return function(*res)
 
 
-from app.run_code.variables import variables
+CMD_REGEX = re.compile(r'!(?P<name>\w+)(?:\s+(?P<args>.*?))?\s*(?P<end>\)|\+|-|$)', flags=re.MULTILINE)
 
-variables['_run_smoked'] = _run_smoked
+
+def convert_code(code: str) -> str:
+    return CMD_REGEX.sub(r'_run_smoked(locals(), \g<name>, "\g<args>")\g<end>', code)
+
+
+tgpy.add_code_transformer('commands', convert_code)
+tgpy.constants['_run_smoked'] = _run_smoked
