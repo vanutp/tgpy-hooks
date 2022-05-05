@@ -3,7 +3,7 @@
     once: false
     origin: tgpy://module/commands
     priority: 1651776900
-    save_locals: true
+    save_locals: false
 """
 import inspect
 import re
